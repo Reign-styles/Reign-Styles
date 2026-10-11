@@ -1,1 +1,350 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reign Styles | Cute Finds</title>
+<style>
+:root {
+  --pink: #d8759e;
+  --light-pink: #fff0f6;
+  --dark: #49343e;
+  --white: #ffffff;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #fffafd;
+  color: var(--dark);
+}
+header {
+  text-align: center;
+  padding: 28px 16px 22px;
+  background: var(--light-pink);
+}
+.brand {
+  font-family: Georgia, serif;
+  font-size: 34px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin: 0;
+}
+header p { margin: 9px 0 0; font-size: 14px; }
+nav {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 14px;
+  background: white;
+  border-bottom: 1px solid #f3dce6;
+}
+nav a {
+  color: var(--dark);
+  text-decoration: none;
+  font-size: 13px;
+}
+main { max-width: 1100px; margin: auto; padding: 22px 14px; }
+.intro { text-align: center; margin: 8px 0 22px; }
+.intro h2 {
+  font-family: Georgia, serif;
+  font-size: 25px;
+  margin-bottom: 8px;
+}
+.intro p { color: #806c76; font-size: 14px; }
+.search-wrap { max-width: 620px; margin: 20px auto; }
+#search {
+  width: 100%;
+  padding: 15px 17px;
+  border: 1px solid #e8c6d6;
+  border-radius: 30px;
+  background: white;
+  font-size: 16px;
+  outline-color: var(--pink);
+}
+#categories {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0 24px;
+}
+.category {
+  border: 1px solid #e8c6d6;
+  background: white;
+  color: var(--dark);
+  padding: 9px 15px;
+  border-radius: 22px;
+  cursor: pointer;
+}
+.category.active, .category:hover {
+  background: var(--pink);
+  border-color: var(--pink);
+  color: white;
+}
+#status { text-align: center; color: #806c76; padding: 15px 5px; }
+#products {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+}
+.product {
+  background: white;
+  border: 1px solid #f2e5eb;
+  border-radius: 12px;
+  overflow: hidden;
+  padding-bottom: 13px;
+}
+.product-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  background: #fff0f6;
+}
+.product h3 {
+  font-size: 14px;
+  line-height: 1.4;
+  margin: 12px 10px;
+}
+.product a.buy {
+  display: block;
+  text-align: center;
+  margin: 0 10px;
+  padding: 10px 5px;
+  border-radius: 22px;
+  color: white;
+  background: var(--pink);
+  text-decoration: none;
+  font-size: 13px;
+}
+.empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 28px 8px;
+  color: #806c76;
+}
+footer {
+  text-align: center;
+  padding: 25px 15px;
+  background: var(--light-pink);
+  margin-top: 30px;
+  font-size: 12px;
+}
+@media (min-width: 650px) {
+  #products { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+  .product h3 { font-size: 15px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1 class="brand">REIGN STYLES</h1>
+  <p>Your go-to place for cute outfits, accessories, and little wants.</p>
+</header>
+
+<nav>
+  <a href="#home">HOME</a>
+  <a href="#shop">SHOP ALL</a>
+  <a href="#shop">CATEGORIES</a>
+</nav>
+
+<main id="home">
+  <section class="intro">
+    <h2>Find Your Next Favorite ♡</h2>
+    <p>Search cute finds and discover something you’ll love.</p>
+  </section>
+
+  <section id="shop">
+    <div class="search-wrap">
+      <input id="search" type="search"
+        placeholder="Search tops, dresses, bags..."
+        aria-label="Search products">
+    </div>
+    <div id="categories"></div>
+    <p id="status">Connect your Google Sheet to display your products.</p>
+    <div id="products"></div>
+  </section>
+</main>
+
+<footer>
+  <p>REIGN STYLES ♡</p>
+  <p>Some links may be affiliate links. We may earn a commission at no extra cost to you.</p>
+</footer>
+
+<script>
+// STEP 1: Paste your published Google Sheets CSV URL between the quotes.
+const CSV_URL = "";
+
+const searchInput = document.getElementById("search");
+const productsArea = document.getElementById("products");
+const categoriesArea = document.getElementById("categories");
+const statusArea = document.getElementById("status");
+
+let products = [];
+let selectedCategory = "All";
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cell = "", quoted = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"' && quoted && text[i + 1] === '"') {
+      cell += '"';
+      i++;
+    } else if (ch === '"') {
+      quoted = !quoted;
+    } else if (ch === "," && !quoted) {
+      row.push(cell);
+      cell = "";
+    } else if ((ch === "\n" || ch === "\r") && !quoted) {
+      if (ch === "\r" && text[i + 1] === "\n") i++;
+      row.push(cell);
+      if (row.some(v => v.trim())) rows.push(row);
+      row = [];
+      cell = "";
+    } else {
+      cell += ch;
+    }
+  }
+
+  row.push(cell);
+  if (row.some(v => v.trim())) rows.push(row);
+  return rows;
+}
+
+function getField(record, names) {
+  for (const name of names) {
+    const key = Object.keys(record).find(
+      k => k.trim().toLowerCase() === name.toLowerCase()
+    );
+    if (key && record[key]) return record[key].trim();
+  }
+  return "";
+}
+
+function renderCategories() {
+  const list = ["All", ...new Set(
+    products.map(p => p.category).filter(Boolean)
+  )];
+
+  categoriesArea.innerHTML = "";
+  list.forEach(category => {
+    const button = document.createElement("button");
+    button.className = "category" +
+      (selectedCategory === category ? " active" : "");
+    button.textContent = category;
+    button.onclick = () => {
+      selectedCategory = category;
+      renderCategories();
+      renderProducts();
+    };
+    categoriesArea.appendChild(button);
+  });
+}
+
+function renderProducts() {
+  const query = searchInput.value.trim().toLowerCase();
+
+  const matches = products.filter(p => {
+    const matchesSearch =
+      p.name.toLowerCase().includes(query) ||
+      p.category.toLowerCase().includes(query);
+    const matchesCategory =
+      selectedCategory === "All" ||
+      p.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  productsArea.innerHTML = "";
+
+  if (!matches.length) {
+    productsArea.innerHTML =
+      '<p class="empty">No products found. Try another search ♡</p>';
+    return;
+  }
+
+  matches.forEach(p => {
+    const card = document.createElement("article");
+    card.className = "product";
+
+    const imageLink = document.createElement("a");
+    imageLink.href = p.link;
+    imageLink.target = "_blank";
+    imageLink.rel = "noopener noreferrer sponsored";
+
+    const img = document.createElement("img");
+    img.className = "product-image";
+    img.src = p.image;
+    img.alt = p.name;
+    img.loading = "lazy";
+    img.onerror = () => {
+      img.alt = "Image unavailable — check the image URL";
+      img.removeAttribute("src");
+    };
+    imageLink.appendChild(img);
+
+    const title = document.createElement("h3");
+    title.textContent = p.name;
+
+    const buy = document.createElement("a");
+    buy.className = "buy";
+    buy.href = p.link;
+    buy.target = "_blank";
+    buy.rel = "noopener noreferrer sponsored";
+    buy.textContent = "View Product ♡";
+
+    card.append(imageLink, title, buy);
+    productsArea.appendChild(card);
+  });
+}
+
+searchInput.addEventListener("input", renderProducts);
+
+async function loadProducts() {
+  if (!CSV_URL) {
+    statusArea.textContent =
+      "Your website design is ready! Connect your Google Sheet to show products.";
+    return;
+  }
+
+  try {
+    statusArea.textContent = "Loading your cute finds...";
+    const response = await fetch(CSV_URL);
+    if (!response.ok) throw new Error("Could not load spreadsheet");
+    const rows = parseCSV(await response.text());
+    if (rows.length < 2) throw new Error("No product rows found");
+
+    const headers = rows[0].map(h => h.replace(/^\uFEFF/, "").trim());
+    products = rows.slice(1).map(row => {
+      const record = {};
+      headers.forEach((h, i) => record[h] = row[i] || "");
+      return {
+        name: getField(record, ["Product Name", "Name", "Product"]),
+        image: getField(record, ["Image URL", "Image", "Photo URL"]),
+        link: getField(record, ["Affiliate Link", "Affiliate URL", "Link", "URL"]),
+        category: getField(record, ["Category", "Type"])
+      };
+    }).filter(p => p.name && p.image && p.link);
+
+    if (!products.length) {
+      throw new Error("Check your column headings and product details");
+    }
+
+    statusArea.textContent = products.length + " products ready ♡";
+    renderCategories();
+    renderProducts();
+  } catch (error) {
+    statusArea.textContent =
+      "We couldn't load the products. Check your published CSV link and spreadsheet headings.";
+  }
+}
+
+loadProducts();
+</script>
+</body>
+</html>
+
